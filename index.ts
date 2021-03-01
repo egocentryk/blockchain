@@ -15,12 +15,12 @@ class Transaction {
 
 // Individual block on the chain
 class Block {
-
   public nonce = Math.round(Math.random() * 999999999);
 
   constructor(
     public prevHash: string, 
     public transaction: Transaction, 
+    public amount: number,
     public ts = Date.now()
   ) {}
 
@@ -32,18 +32,19 @@ class Block {
   }
 }
 
-
 // The blockchain
 class Chain {
   // Singleton instance
   public static instance = new Chain();
+
+  public amount: number = 100;
 
   chain: Block[];
 
   constructor() {
     this.chain = [
       // Genesis block
-      new Block('', new Transaction(100, 'genesis', 'egocentryk'))
+      new Block('', new Transaction(this.amount, 'genesis', 'egocentryk'), this.amount)
     ];
   }
 
@@ -74,19 +75,18 @@ class Chain {
   }
 
   // Add a new block to the chain if valid signature & proof of work is complete
-  addBlock(transaction: Transaction, senderPublicKey: string, signature: Buffer) {
+  addBlock(amount: number, transaction: Transaction, senderPublicKey: string, signature: Buffer) {
     const verify = crypto.createVerify('SHA256');
     verify.update(transaction.toString());
 
     const isValid = verify.verify(senderPublicKey, signature);
 
     if (isValid) {
-      const newBlock = new Block(this.lastBlock.hash, transaction);
+      const newBlock = new Block(this.lastBlock.hash, transaction, amount);
       this.mine(newBlock.nonce);
       this.chain.push(newBlock);
     }
   }
-
 }
 
 // Wallet gives a user a public/private keypair
@@ -112,12 +112,11 @@ class Wallet {
     sign.update(transaction.toString()).end();
 
     const signature = sign.sign(this.privateKey); 
-    Chain.instance.addBlock(transaction, this.publicKey, signature);
+    Chain.instance.addBlock(amount, transaction, this.publicKey, signature);
   }
 }
 
 // Example usage
-
 const egocentryk = new Wallet();
 const jane = new Wallet();
 const john = new Wallet();
